@@ -1,0 +1,13 @@
+{
+  "workflows": {
+    "git_commit": true,
+    "parallel_mappers": true
+  },
+  "preferences": {
+    "language": "pt-BR",
+    "theme": "modern"
+  },
+  "intel": {
+    "enabled": true
+  }
+}
