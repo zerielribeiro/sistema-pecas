@@ -150,7 +150,6 @@ export function LaboratorioClient({ pecas }: { pecas: Peca[] }) {
       }
     });
 
-    // @ts-expect-error - lastAutoTable is added by jspdf-autotable plugin
     const finalY = (doc as unknown as jsPDFWithAutoTable).lastAutoTable?.finalY || 150;
 
     // Área de Assinaturas
