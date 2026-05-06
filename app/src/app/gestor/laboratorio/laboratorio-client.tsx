@@ -62,7 +62,7 @@ export function LaboratorioClient({ pecas }: { pecas: Peca[] }) {
   )).sort() as string[];
 
   const pecasReceber = pecas.filter((p) => {
-    const isReceber = p.status === "DOA" || p.status === "UTILIZADA";
+    const isReceber = p.status === "DOA" || p.status === "UTILIZADA" || p.status === "DEVOLVIDA_NOVA";
     const nomeTecnico = getNomeTecnico(p);
     const matchesTecnico = tecnicoFilter === "TODOS" || nomeTecnico === tecnicoFilter;
     return isReceber && matchesTecnico;
@@ -308,11 +308,14 @@ export function LaboratorioClient({ pecas }: { pecas: Peca[] }) {
                   <div className="flex flex-col items-start sm:items-end gap-1.5 pr-4">
                     <Badge
                       variant="secondary"
-                      className={`text-[10px] px-1.5 h-4 shrink-0 font-bold border ${peca.status === 'DOA' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                        peca.status === 'UTILIZADA' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-muted text-muted-foreground'
-                        }`}
+                      className={`text-[10px] px-1.5 h-4 shrink-0 font-bold border ${
+                        peca.status === 'DOA' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                        peca.status === 'UTILIZADA' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
+                        peca.status === 'DEVOLVIDA_NOVA' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                        'bg-muted text-muted-foreground'
+                      }`}
                     >
-                      {peca.status}
+                      {peca.status === 'DEVOLVIDA_NOVA' ? 'NOVA' : peca.status}
                     </Badge>
 
                     {getNomeTecnico(peca) && (

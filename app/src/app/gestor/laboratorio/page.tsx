@@ -14,7 +14,7 @@ export default async function LaboratorioPage() {
       id, cod_produto, descricao, pca, status,
       tecnico:tecnico_atual_id ( nome )
     `)
-    .in("status", ["DOA", "UTILIZADA", "AGUARDANDO_ENVIO", "ENVIADA_LAB"])
+    .in("status", ["DOA", "UTILIZADA", "AGUARDANDO_ENVIO", "ENVIADA_LAB", "DEVOLVIDA_NOVA"])
     .order("atualizado_em", { ascending: false });
 
   return (

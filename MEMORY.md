@@ -88,10 +88,14 @@
     - [x] Restrição de perfil (Nome/Email read-only).
     - [x] Limpeza total de erros de lint (0 erros).
     - [x] Push para GitHub (`main`).
-- [/] Fase 6: Testes Automatizados e QA Contínuo (Em andamento)
-    - [ ] Configuração de Vitest e Playwright.
-    - [ ] Cobertura de testes unitários para ações de servidor.
-    - [ ] Cobertura de testes E2E para fluxos de inventário.
+- [x] Fase 6: Testes Automatizados e QA Contínuo ✅
+    - [x] Configuração de Vitest e Playwright.
+    - [x] Cobertura de testes unitários para ações de servidor (`auth.ts`, `pecas.ts`, `solicitacoes.ts`, `atendimento.ts`).
+    - [x] Cobertura de testes unitários para utilitários (`utils.ts`).
+    - [x] Cobertura de testes E2E para fluxos críticos:
+        - [x] Perfil e Gestão de Inventário (Prefixos e Restrições).
+        - [x] Distribuição de Peças (Fluxo Gestor -> Técnico).
+        - [x] Laboratório e RMA (Gestão de Logística Reversa).
 
 ---
 
@@ -120,6 +124,7 @@
 - **Estética**: Aplicado padrão Glassmorphism e Dark Mode consistente em todos os novos componentes.
 - **Segurança de Identidade**: Campos de perfil protegidos contra alteração indevida por técnicos/gestores.
 - **Rastreabilidade Visual**: Prefixos "CÓD:" e "PCA:" garantem que o usuário saiba exatamente qual dado está lendo sem ambiguidade.
+- **Cobertura de Testes**: Implementados 16+ testes unitários validando fluxos críticos de backend e regras de negócio.
 
 ---
 

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { registrarAtendimentoEBaixa } from "@/app/actions/atendimento";
 
 export function AtendimentoClient({ pecas }: { pecas: PecaBase[] }) {
@@ -27,6 +28,7 @@ export function AtendimentoClient({ pecas }: { pecas: PecaBase[] }) {
   const [numeroChamado, setNumeroChamado] = useState("");
   const [localAtendimento, setLocalAtendimento] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [isPecaNova, setIsPecaNova] = useState(false);
 
   const handleAddPeca = (id: string) => {
     if (!selectedPecas.includes(id)) {
@@ -40,9 +42,16 @@ export function AtendimentoClient({ pecas }: { pecas: PecaBase[] }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedPecas.length === 0 || !numeroChamado || !localAtendimento || !descricao || fotos.length === 0) {
-      toast.error("Por favor, preencha todos os campos, selecione pelo menos uma peça e anexe uma foto.");
+    if (selectedPecas.length === 0) {
+      toast.error("Por favor, selecione pelo menos uma peça.");
       return;
+    }
+
+    if (!isPecaNova) {
+      if (!numeroChamado || !localAtendimento || !descricao || fotos.length === 0) {
+        toast.error("Por favor, preencha todos os campos e anexe uma foto.");
+        return;
+      }
     }
 
     setLoading(true);
@@ -56,7 +65,8 @@ export function AtendimentoClient({ pecas }: { pecas: PecaBase[] }) {
         numeroChamado.toUpperCase(),
         localAtendimento.toUpperCase(),
         descricao.toUpperCase(),
-        fotoUrls
+        fotoUrls,
+        isPecaNova
       );
 
       if (result.error) {
@@ -67,6 +77,7 @@ export function AtendimentoClient({ pecas }: { pecas: PecaBase[] }) {
         setNumeroChamado("");
         setLocalAtendimento("");
         setDescricao("");
+        setIsPecaNova(false);
         resetFotos();
         router.refresh();
       }
@@ -160,10 +171,31 @@ export function AtendimentoClient({ pecas }: { pecas: PecaBase[] }) {
                   <Input 
                     id="chamado" 
                     placeholder="EX: OS-2024-..." 
-                    className="bg-background border-border/60 focus:ring-primary/20 transition-all shadow-sm uppercase"
+                    className="bg-background border-border/60 focus:ring-primary/20 transition-all shadow-sm uppercase disabled:opacity-50"
                     value={numeroChamado}
                     onChange={(e) => setNumeroChamado(e.target.value.toUpperCase())}
+                    disabled={isPecaNova}
                   />
+                </div>
+              </div>
+
+              {/* Checkbox Peça Nova */}
+              <div className="flex items-center space-x-2 bg-primary/5 p-3 rounded-lg border border-primary/20">
+                <Checkbox 
+                  id="peca_nova" 
+                  checked={isPecaNova} 
+                  onCheckedChange={(val) => setIsPecaNova(!!val)}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="peca_nova"
+                    className="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Devolver como Peça Nova
+                  </label>
+                  <p className="text-[10px] text-muted-foreground">
+                    Marque esta opção se a peça não foi utilizada e deve retornar ao estoque.
+                  </p>
                 </div>
               </div>
 
@@ -172,9 +204,10 @@ export function AtendimentoClient({ pecas }: { pecas: PecaBase[] }) {
                 <Input 
                   id="local" 
                   placeholder="EX: LOJA CENTRO" 
-                  className="bg-background border-border/60 shadow-sm uppercase"
+                  className="bg-background border-border/60 shadow-sm uppercase disabled:opacity-50"
                   value={localAtendimento}
                   onChange={(e) => setLocalAtendimento(e.target.value.toUpperCase())}
+                  disabled={isPecaNova}
                 />
               </div>
 
@@ -183,15 +216,16 @@ export function AtendimentoClient({ pecas }: { pecas: PecaBase[] }) {
                 <Textarea 
                   id="descricao" 
                   placeholder="DESCREVA O QUE FOI REALIZADO..." 
-                  className="min-h-[100px] resize-none bg-background border-border/60 shadow-sm uppercase"
+                  className="min-h-[100px] resize-none bg-background border-border/60 shadow-sm uppercase disabled:opacity-50"
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value.toUpperCase())}
+                  disabled={isPecaNova}
                 />
               </div>
             </div>
 
             {/* Seção de Mídia */}
-            <div className="p-5 md:p-6 bg-muted/10 space-y-4">
+            <div className={`p-5 md:p-6 bg-muted/10 space-y-4 transition-opacity ${isPecaNova ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
               <Label className="text-xs font-semibold text-foreground ml-1">Comprovantes (Obrigatório)</Label>
               
               <div className="flex flex-wrap gap-4 items-start">

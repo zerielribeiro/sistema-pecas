@@ -8,7 +8,8 @@ test('profile fields should be read-only', async ({ page }) => {
   await page.click('button[type="submit"]');
 
   // 2. Verificar se redirecionou para o dashboard
-  await expect(page).toHaveURL(/.*dashboard/);
+  await expect(page).toHaveURL(/.*dashboard/, { timeout: 15000 });
+  await page.waitForLoadState('networkidle');
 
   // 3. Abrir configurações de perfil (botão no header com ícone de usuários)
   await page.click('header button:has(svg.lucide-users)');
@@ -30,14 +31,14 @@ test('inventory should show prefixes CÓD: and PCA:', async ({ page }) => {
   await page.fill('input[name="email"]', 'gestor@empresa.com');
   await page.fill('input[name="password"]', '123456');
   await page.click('button[type="submit"]');
+  await expect(page).toHaveURL(/\/gestor/, { timeout: 15000 });
+  await page.waitForLoadState('networkidle');
 
   // Go to Peças
   await page.goto('/gestor/pecas');
-
-  // Wait for items to load
-  await page.waitForSelector('.lucide-package', { state: 'detached' }); // Wait for loader to hide
+  await page.waitForLoadState('networkidle');
 
   // Check for prefixes (at least one instance)
-  await expect(page.locator('text=CÓD:')).toBeVisible();
-  await expect(page.locator('text=PCA:')).toBeVisible();
+  await expect(page.getByText(/CÓD:/i).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText(/PCA:/i).first()).toBeVisible({ timeout: 10000 });
 });

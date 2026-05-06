@@ -97,7 +97,7 @@ export function ProfileSettings({ userName, userEmail = "", children, onProfileU
                   id="newPassword"
                   name="newPassword"
                   type="password"
-                  placeholder="Deixe em branco para não alterar"
+                  placeholder="Digite sua nova senha"
                   className="pl-9"
                 />
               </div>
