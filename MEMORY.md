@@ -2,7 +2,7 @@
 
 > Status: Finalizado (Aguardando Go-Live)
 > Versão: 1.0.0
-> Última Atualização: 30/04/2026 (Auditoria e QA Final)
+> Última Atualização: 06/05/2026 (Auditoria, Segurança e Testes)
 
 ---
 
@@ -83,6 +83,15 @@
     - [x] Limpeza de imports não utilizados
     - [x] Verificação de segredos e variáveis de ambiente
 - [x] Validação Final de PWA e Mobile First ✅
+- [x] Auditoria de Polimento e Segurança ✅
+    - [x] Prefixos visuais "CÓD:" e "PCA:" em todas as listagens.
+    - [x] Restrição de perfil (Nome/Email read-only).
+    - [x] Limpeza total de erros de lint (0 erros).
+    - [x] Push para GitHub (`main`).
+- [/] Fase 6: Testes Automatizados e QA Contínuo (Em andamento)
+    - [ ] Configuração de Vitest e Playwright.
+    - [ ] Cobertura de testes unitários para ações de servidor.
+    - [ ] Cobertura de testes E2E para fluxos de inventário.
 
 ---
 
@@ -109,6 +118,8 @@
 - **Segurança**: Confirmado que `SUPABASE_SERVICE_ROLE_KEY` é usada apenas no lado do servidor (Server Actions/Admin Client).
 - **UX**: Validado responsividade dos novos módulos (Histórico e Lab) em resoluções mobile.
 - **Estética**: Aplicado padrão Glassmorphism e Dark Mode consistente em todos os novos componentes.
+- **Segurança de Identidade**: Campos de perfil protegidos contra alteração indevida por técnicos/gestores.
+- **Rastreabilidade Visual**: Prefixos "CÓD:" e "PCA:" garantem que o usuário saiba exatamente qual dado está lendo sem ambiguidade.
 
 ---
 

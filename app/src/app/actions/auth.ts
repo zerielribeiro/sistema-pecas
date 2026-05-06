@@ -189,7 +189,7 @@ export async function updateProfileAction(prevState: ProfileState, formData: For
     return { error: "Nome e email são obrigatórios." };
   }
 
-  // Se o usuário preencheu a nova senha, valida e atualiza
+  // Apenas a senha pode ser alterada via perfil
   if (newPassword || confirmPassword) {
     if (newPassword !== confirmPassword) {
       return { error: "As senhas não coincidem." };
@@ -205,32 +205,10 @@ export async function updateProfileAction(prevState: ProfileState, formData: For
     if (passwordError) {
       return { error: "Erro ao atualizar senha: " + passwordError.message };
     }
+
+    revalidatePath("/", "layout");
+    return { success: true, message: "Senha atualizada com sucesso." };
   }
 
-  // Atualiza o email (auth) - Utiliza adminClient para contornar a necessidade de confirmação de email
-  if (email !== authData.user.email) {
-    const admin = createAdminClient();
-    const { error: emailError } = await admin.auth.admin.updateUserById(
-      authData.user.id,
-      { email: email, email_confirm: true }
-    );
-    
-    if (emailError) {
-      return { error: "Erro ao atualizar email: " + emailError.message };
-    }
-  }
-
-  // Atualiza o nome (tabela perfis)
-  const { error: perfilError } = await supabase
-    .from("perfis")
-    .update({ nome })
-    .eq("id", authData.user.id);
-
-  if (perfilError) {
-    return { error: "Erro ao atualizar nome no perfil." };
-  }
-
-  revalidatePath("/", "layout");
-
-  return { success: true, message: "Perfil atualizado com sucesso.", user: { nome, email } };
+  return { error: "Nenhuma alteração detectada." };
 }
