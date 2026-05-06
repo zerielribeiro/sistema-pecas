@@ -31,9 +31,9 @@ const gestorNav = [
   },
   {
     href: "/gestor/laboratorio",
-    label: "Peças DOA",
+    label: "Peças RMA",
     icon: <AlertTriangle className="w-5 h-5" />,
-    description: "RMA e Laboratório"
+    description: "doa e Laboratório"
   },
   {
     href: "/gestor/historico",
@@ -65,7 +65,6 @@ export function GestorShell({
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Header */}
-      {/* Header */}
       <header className="flex items-center justify-between px-4 h-16 border-b border-border/40 bg-card/40 backdrop-blur-md sticky top-0 z-40 shrink-0">
         <div className="flex items-center gap-4">
           {/* Menu Sidebar Toggle */}
@@ -84,7 +83,7 @@ export function GestorShell({
                   <SheetTitle className="text-xl font-black tracking-tighter">Gestor<span className="text-primary">RB</span></SheetTitle>
                 </div>
               </SheetHeader>
-              
+
               <nav className="p-4 space-y-1">
                 {gestorNav.map((item) => {
                   const isActive = pathname.startsWith(item.href);
@@ -94,8 +93,8 @@ export function GestorShell({
                         href={item.href}
                         className={cn(
                           "flex items-center gap-3 p-3 rounded-xl transition-all group border",
-                          isActive 
-                            ? "bg-primary/10 text-primary border-primary/20 shadow-sm shadow-primary/5" 
+                          isActive
+                            ? "bg-primary/10 text-primary border-primary/20 shadow-sm shadow-primary/5"
                             : "text-muted-foreground hover:bg-accent hover:text-foreground border-transparent"
                         )}
                       >
@@ -144,8 +143,8 @@ export function GestorShell({
             <span className="text-xs font-bold text-foreground">{currentName}</span>
             <span className="text-[10px] text-muted-foreground font-medium">GESTOR</span>
           </div>
-          <ProfileSettings 
-            userName={currentName} 
+          <ProfileSettings
+            userName={currentName}
             userEmail={currentEmail}
             onProfileUpdate={(newName, newEmail) => {
               setCurrentName(newName);

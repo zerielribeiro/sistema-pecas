@@ -26,6 +26,16 @@ type LoginState = {
   remainingAttempts?: number;
 } | null;
 
+type ProfileState = {
+  error?: string;
+  success?: boolean;
+  message?: string;
+  user?: {
+    nome: string;
+    email: string;
+  };
+} | null;
+
 export async function loginAction(
   _prevState: LoginState,
   formData: FormData
@@ -162,7 +172,7 @@ export async function changePasswordAction(formData: FormData) {
   return { success: true };
 }
 
-export async function updateProfileAction(prevState: any, formData: FormData) {
+export async function updateProfileAction(prevState: ProfileState, formData: FormData): Promise<ProfileState> {
   const supabase = await createClient();
   
   const { data: authData } = await supabase.auth.getUser();

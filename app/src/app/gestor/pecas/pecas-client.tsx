@@ -3,21 +3,24 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, ArrowRightLeft, Plus, Minus, ChevronDown, ChevronUp, Upload, FileSpreadsheet, Download, Search, Filter, Users, MoreVertical, Edit, Trash2, AlertTriangle, X, BookOpen, Database, Package, Check } from "lucide-react";
+import { Loader2, ArrowRightLeft, Plus, Minus, Upload, FileSpreadsheet, Search, Filter, Users, MoreVertical, Edit, Trash2, AlertTriangle, X, BookOpen, Package, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { trimLeadingZeros } from "@/lib/utils";
+import { STATUS_COLORS as statusColors, STATUS_LABELS as statusLabels } from "@/lib/constants";
+import type { PecaCompleta } from "@/types/peca";
 import { 
   remanejarPeca, 
   cadastrarPeca, 
@@ -29,36 +32,7 @@ import {
   getCatalogo
 } from "@/app/actions/pecas";
 
-const statusColors: Record<string, string> = {
-  EM_ESTOQUE_EMPRESA: "bg-gray-500/15 text-gray-400 border-gray-500/30",
-  DISTRIBUIDA: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  UTILIZADA: "bg-emerald/15 text-emerald border-emerald/30",
-  DOA: "bg-red-500/15 text-red-400 border-red-500/30",
-  AGUARDANDO_ENVIO: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  ENVIADA_LAB: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-  FINALIZADA: "bg-stone-500/15 text-stone-400 border-stone-500/30",
-};
-
-const statusLabels: Record<string, string> = {
-  EM_ESTOQUE_EMPRESA: "Estoque",
-  DISTRIBUIDA: "Com Técnico",
-  UTILIZADA: "Utilizada",
-  DOA: "DOA",
-  AGUARDANDO_ENVIO: "Aguard. Envio",
-  ENVIADA_LAB: "No Lab",
-  FINALIZADA: "Finalizada",
-};
-
-interface Peca {
-  id: string;
-  cod_produto: string;
-  descricao: string | null;
-  pca: string;
-  status: string;
-  atualizado_em: string | null;
-  tecnico: { nome: string } | null;
-  tecnico_atual_id: string | null;
-}
+type Peca = PecaCompleta;
 
 interface Tecnico {
   id: string;
@@ -84,12 +58,11 @@ export function PecasClient({
   const [tecnicoFilter, setTecnicoFilter] = useState<string>("TODOS");
 
   const getNomeTecnico = (p: Peca) => {
-    return p.tecnico?.nome || "";
-  };
-
-  const trimLeadingZeros = (val: string | null | undefined) => {
-    if (!val) return "";
-    return val.replace(/^0+/, "");
+    if (!p.tecnico) return "";
+    if (Array.isArray(p.tecnico)) {
+      return p.tecnico[0]?.nome || "";
+    }
+    return p.tecnico.nome || "";
   };
 
   const filteredPecas = pecas.filter(peca => {
@@ -106,18 +79,13 @@ export function PecasClient({
     return matchesSearch && matchesStatus && matchesTecnico;
   });
 
-  const tecnicosComPecas = Array.from(new Set(
-    pecas
-      .map(p => getNomeTecnico(p))
-      .filter(Boolean)
-  )).sort() as string[];
-
   // Estados para Cadastro Manual
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [newCodProduto, setNewCodProduto] = useState("");
   const [newDescricao, setNewDescricao] = useState("");
   const [newPca, setNewPca] = useState("");
   const [newEntryDate, setNewEntryDate] = useState("");
+  const [isConsumable, setIsConsumable] = useState(false);
 
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -157,6 +125,7 @@ export function PecasClient({
   }, [filteredPecas]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarCatalogo();
   }, []);
 
@@ -250,8 +219,12 @@ export function PecasClient({
 
   const handleCadastrar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCodProduto || !newPca) {
-      toast.error("Código do Produto e PCA são obrigatórios.");
+    if (!newCodProduto) {
+      toast.error("Código do Produto é obrigatório.");
+      return;
+    }
+    if (!isConsumable && !newPca) {
+      toast.error("PCA é obrigatório para peças não consumíveis.");
       return;
     }
 
@@ -262,6 +235,7 @@ export function PecasClient({
         descricao: newDescricao,
         pca: newPca,
         data_entrada: newEntryDate || undefined,
+        bem_de_consumo: isConsumable,
       });
 
       if (result.error) {
@@ -273,9 +247,10 @@ export function PecasClient({
         setNewDescricao("");
         setNewPca("");
         setNewEntryDate("");
+        setIsConsumable(false);
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("Erro inesperado ao cadastrar.");
     } finally {
       setLoading(false);
@@ -324,7 +299,7 @@ export function PecasClient({
         setCsvFile(null);
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("Erro ao processar arquivo CSV.");
     } finally {
       setLoading(false);
@@ -351,7 +326,7 @@ export function PecasClient({
         setIsSheetOpen(false);
         router.refresh();
       }
-    } catch (e) {
+    } catch {
       toast.error("Erro inesperado. Tente novamente.");
     } finally {
       setLoading(false);
@@ -388,7 +363,7 @@ export function PecasClient({
         setIsEditDialogOpen(false);
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("Erro inesperado ao editar.");
     } finally {
       setLoading(false);
@@ -411,7 +386,7 @@ export function PecasClient({
         setIsDeleteDialogOpen(false);
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("Erro inesperado ao excluir.");
     } finally {
       setLoading(false);
@@ -516,13 +491,31 @@ export function PecasClient({
                     />
                   </div>
 
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Checkbox 
+                      id="consumable_entry" 
+                      checked={isConsumable}
+                      onCheckedChange={(checked) => {
+                        setIsConsumable(checked as boolean);
+                        if (checked) setNewPca("");
+                      }}
+                    />
+                    <Label htmlFor="consumable_entry" className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Bem de Consumo (Não possui PCA)
+                    </Label>
+                  </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="pca_entry">PCA / Número de Série (Único)</Label>
+                    <Label htmlFor="pca_entry" className={isConsumable ? "text-muted-foreground" : ""}>
+                      PCA / Número de Série (Único)
+                    </Label>
                     <Input 
                       id="pca_entry" 
-                      placeholder="Ex: PCA123456" 
+                      placeholder={isConsumable ? "Gerado automaticamente" : "Ex: PCA123456"} 
                       value={newPca}
                       onChange={(e) => setNewPca(e.target.value.toUpperCase())}
+                      disabled={isConsumable}
+                      className={isConsumable ? "bg-muted/50" : ""}
                     />
                   </div>
                 </div>
@@ -531,7 +524,7 @@ export function PecasClient({
                   <Button 
                     type="submit" 
                     className="w-full"
-                    disabled={loading || !newCodProduto || !newPca}
+                    disabled={loading || !newCodProduto || (!isConsumable && !newPca)}
                   >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Confirmar Entrada
@@ -776,7 +769,7 @@ export function PecasClient({
                   <div className="flex-1 flex items-center gap-4 min-w-0">
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant="outline" className="font-mono text-[11px] h-5 px-2 border-primary/30 text-primary font-bold">
-                        {trimLeadingZeros(codProduto)}
+                        CÓD: {trimLeadingZeros(codProduto)}
                       </Badge>
                       {hasMultiple && (
                         <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 text-[10px] h-5 px-1.5 font-bold shrink-0">
@@ -791,14 +784,18 @@ export function PecasClient({
 
                     {!hasMultiple && (
                       <div className="flex items-center gap-4 shrink-0 mr-2">
-                        {firstPeca.tecnico?.nome && (
+                        {getNomeTecnico(firstPeca) && (
                           <div className="flex items-center gap-1.5 text-[10px] font-medium text-blue-400">
                             <Users className="w-3.5 h-3.5" />
-                            <span className="truncate max-w-[120px] uppercase tracking-tighter">{firstPeca.tecnico.nome}</span>
+                            <span className="truncate max-w-[120px] uppercase tracking-tighter">{getNomeTecnico(firstPeca)}</span>
                           </div>
                         )}
                         <p className="font-mono text-[11px] text-muted-foreground font-medium hidden sm:block">
-                          PCA: <span className="text-zinc-300">{trimLeadingZeros(firstPeca.pca)}</span>
+                          {firstPeca.bem_de_consumo ? (
+                            <Badge variant="outline" className="text-[10px] h-5 border-amber-500/30 text-amber-500">CONSUMO</Badge>
+                          ) : (
+                            <>PCA: <span className="text-zinc-300">{trimLeadingZeros(firstPeca.pca)}</span></>
+                          )}
                         </p>
                         <Badge variant="outline" className={`${statusColors[firstPeca.status]} text-[10px] h-5`}>
                           {statusLabels[firstPeca.status]}
@@ -864,7 +861,7 @@ export function PecasClient({
                   <div className="bg-muted/10 animate-in slide-in-from-top-2 duration-300">
                     {items.map((peca) => {
                       const isDistribuida = peca.status === "DISTRIBUIDA";
-                      const nomeTecnico = peca.tecnico?.nome || null;
+                      const nomeTecnico = getNomeTecnico(peca) || null;
 
                       return (
                         <div key={peca.id} className="p-2 pl-6 border-b border-border/30 last:border-0 flex items-center justify-between hover:bg-muted/20 transition-colors group/item">
@@ -872,9 +869,13 @@ export function PecasClient({
                             {/* PCA */}
                             <div className="flex items-center gap-2">
                               <span className="text-[9px] uppercase font-bold text-muted-foreground/60 sm:hidden">PCA</span>
-                              <span className="font-mono text-xs text-foreground font-bold bg-muted px-1.5 py-0.5 rounded">
-                                {trimLeadingZeros(peca.pca)}
-                              </span>
+                              {peca.bem_de_consumo ? (
+                                <Badge variant="outline" className="text-[10px] px-1.5 h-4 border-amber-500/30 text-amber-500">CONSUMO</Badge>
+                              ) : (
+                                <span className="font-mono text-xs text-foreground font-bold bg-muted px-1.5 py-0.5 rounded">
+                                  PCA: {trimLeadingZeros(peca.pca)}
+                                </span>
+                              )}
                             </div>
 
                             {/* STATUS */}

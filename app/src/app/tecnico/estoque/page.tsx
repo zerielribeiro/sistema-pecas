@@ -1,18 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { trimLeadingZeros } from "@/lib/utils";
+import { STATUS_COLORS, STATUS_LABELS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-
-const statusColors: Record<string, string> = {
-  DISTRIBUIDA: "bg-emerald/15 text-emerald border-emerald/30",
-  UTILIZADA: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  DOA: "bg-red-500/15 text-red-400 border-red-500/30",
-};
-
-const statusLabels: Record<string, string> = {
-  DISTRIBUIDA: "Em mãos",
-  UTILIZADA: "Utilizada",
-  DOA: "DOA",
-};
 
 export default async function EstoqueTecnicoPage() {
   const supabase = await createClient();
@@ -24,15 +14,11 @@ export default async function EstoqueTecnicoPage() {
     .from("pecas")
     .select("*")
     .eq("tecnico_atual_id", user!.id)
+    .eq("status", "DISTRIBUIDA")
     .order("atualizado_em", { ascending: false });
 
-  const trimLeadingZeros = (val: string | null | undefined) => {
-    if (!val) return "";
-    return val.replace(/^0+/, "");
-  };
-
   return (
-    <div className="max-w-2xl mx-auto p-4 py-6 space-y-6">
+    <div className="max-w-2xl mx-auto p-4 py-4 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Meu Estoque</h2>
         <Badge variant="outline" className="font-mono text-xs">
@@ -59,9 +45,9 @@ export default async function EstoqueTecnicoPage() {
                   </div>
                   <Badge
                     variant="outline"
-                    className={statusColors[peca.status] || ""}
+                    className={STATUS_COLORS[peca.status] || ""}
                   >
-                    {statusLabels[peca.status] || peca.status}
+                    {STATUS_LABELS[peca.status] || peca.status}
                   </Badge>
                 </div>
               </CardContent>

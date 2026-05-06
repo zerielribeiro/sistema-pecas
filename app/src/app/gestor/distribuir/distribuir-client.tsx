@@ -91,7 +91,7 @@ export function DistribuirClient({
         setSelectedTecnico("");
         router.refresh();
       }
-    } catch (e) {
+    } catch {
       setError("Erro inesperado. Tente novamente.");
     } finally {
       setLoading(false);

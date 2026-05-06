@@ -115,7 +115,7 @@ export default async function HistoricoPage() {
               
               {mov.observacao && (
                 <p className="mt-2 text-xs italic text-muted-foreground bg-muted/30 p-2 rounded border border-border/30">
-                  "{mov.observacao}"
+                  &quot;{mov.observacao}&quot;
                 </p>
               )}
               

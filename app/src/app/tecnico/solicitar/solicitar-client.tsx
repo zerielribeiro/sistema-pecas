@@ -1,26 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { solicitarPeca } from "@/app/actions/solicitacoes";
+import { trimLeadingZeros } from "@/lib/utils";
+import type { PecaSolicitacao } from "@/types/peca";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   ShoppingCart,
   Package,
-  CheckCircle2,
   Search,
   Loader2,
   ClipboardList,
 } from "lucide-react";
-
-type Peca = {
-  id: string;
-  cod_produto: string;
-  descricao: string | null;
-  pca: string;
-  criado_em: string;
-};
 
 type Solicitacao = {
   id: string;
@@ -30,14 +25,9 @@ type Solicitacao = {
 };
 
 interface SolicitarPecaClientProps {
-  pecas: Peca[];
+  pecas: PecaSolicitacao[];
   solicitacoesPendentes: Solicitacao[];
 }
-
-const trimZeros = (val: string | null | undefined) => {
-  if (!val) return "";
-  return val.replace(/^0+/, "");
-};
 
 export function SolicitarPecaClient({
   pecas,
@@ -45,8 +35,6 @@ export function SolicitarPecaClient({
 }: SolicitarPecaClientProps) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const jasSolicitadas = new Set(solicitacoesPendentes.map((s) => s.peca_id));
@@ -62,22 +50,20 @@ export function SolicitarPecaClient({
 
   const handleSolicitar = () => {
     if (!selected) return;
-    setErrorMsg(null);
-    setSuccess(null);
 
     startTransition(async () => {
       const result = await solicitarPeca(selected);
       if (result.error) {
-        setErrorMsg(result.error);
+        toast.error(result.error);
       } else {
-        setSuccess("Solicitação enviada! Aguarde a aprovação do gestor.");
+        toast.success("Solicitação enviada! Aguarde a aprovação do gestor.");
         setSelected(null);
       }
     });
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 py-6 space-y-5">
+    <div className="max-w-2xl mx-auto p-4 py-4 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -98,28 +84,15 @@ export function SolicitarPecaClient({
         )}
       </div>
 
-      {/* Feedback */}
-      {success && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          {success}
-        </div>
-      )}
-      {errorMsg && (
-        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-          {errorMsg}
-        </div>
-      )}
-
-      {/* Search */}
+      {/* Search — now using shadcn Input */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
+        <Input
           type="text"
           placeholder="Buscar por código, descrição ou PCA..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border/60 bg-card/60 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+          className="pl-9 pr-4 py-2.5 rounded-xl border-border/60 bg-card/60"
         />
       </div>
 
@@ -177,7 +150,7 @@ export function SolicitarPecaClient({
 
                       <div className="min-w-0">
                         <p className="font-semibold text-sm truncate">
-                          {trimZeros(peca.cod_produto)}
+                          {trimLeadingZeros(peca.cod_produto)}
                         </p>
                         {peca.descricao && (
                           <p className="text-xs text-muted-foreground truncate uppercase">
@@ -189,7 +162,7 @@ export function SolicitarPecaClient({
 
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <span className="text-[10px] font-mono text-muted-foreground">
-                        PCA: {trimZeros(peca.pca)}
+                        PCA: {trimLeadingZeros(peca.pca)}
                       </span>
                       {isPendente ? (
                         <Badge className="text-[9px] py-0 h-4 bg-amber-500/20 text-amber-400 border-amber-500/30">

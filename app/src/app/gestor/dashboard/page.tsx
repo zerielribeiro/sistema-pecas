@@ -7,6 +7,39 @@ import { ptBR } from "date-fns/locale";
 import Link from "next/link";
 import { SolicitacoesPanel } from "./solicitacoes-panel";
 
+interface PecaInfo {
+  id: string;
+  cod_produto: string;
+  descricao: string | null;
+  pca: string;
+}
+
+interface Solicitacao {
+  id: string;
+  status: string;
+  observacao: string | null;
+  criado_em: string;
+  pecas: PecaInfo | null;
+  tecnico: {
+    id: string;
+    nome: string;
+  } | null;
+}
+
+interface ActivityItem {
+  id: string;
+  criado_em: string;
+  de_status: string;
+  para_status: string;
+  pecas: {
+    descricao: string | null;
+    pca: string;
+  } | null;
+  perfis: {
+    nome: string;
+  } | null;
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
 
@@ -46,7 +79,6 @@ export default async function DashboardPage() {
     .order("criado_em", { ascending: false })
     .limit(5);
 
-  const total = pecas?.length || 0;
   const emEstoque = pecas?.filter((p) => p.status === "EM_ESTOQUE_EMPRESA").length || 0;
   const distribuidas = pecas?.filter((p) => p.status === "DISTRIBUIDA").length || 0;
   const pendentesReceber = pecas?.filter((p) => ["DOA", "UTILIZADA"].includes(p.status)).length || 0;
@@ -112,7 +144,7 @@ export default async function DashboardPage() {
             )}
           </h3>
         </div>
-        <SolicitacoesPanel solicitacoes={(solicitacoes as any) ?? []} />
+        <SolicitacoesPanel solicitacoes={(solicitacoes as unknown as Solicitacao[]) ?? []} />
       </div>
 
       {/* Recent Activity Feed */}
@@ -129,7 +161,7 @@ export default async function DashboardPage() {
 
         <div className="space-y-2">
           {recentActivity && recentActivity.length > 0 ? (
-            recentActivity.map((activity: any) => (
+            recentActivity.map((activity: ActivityItem) => (
               <div
                 key={activity.id}
                 className="flex items-center gap-3 p-2.5 rounded-xl border border-border/40 bg-card/30 backdrop-blur-sm hover:bg-card/50 transition-colors"

@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Camera, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { trimLeadingZeros } from "@/lib/utils";
+import { uploadToStorage } from "@/lib/upload";
+import { usePhotoGallery } from "@/hooks/use-photo-gallery";
+import type { PecaBase } from "@/types/peca";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,28 +17,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { registrarAtendimentoEBaixa } from "@/app/actions/atendimento";
 
-interface Peca {
-  id: string;
-  cod_produto: string;
-  descricao: string | null;
-  pca: string;
-}
-
-interface FotoItem {
-  file: File;
-  preview: string;
-}
-
-export function AtendimentoClient({ pecas }: { pecas: Peca[] }) {
+export function AtendimentoClient({ pecas }: { pecas: PecaBase[] }) {
   const router = useRouter();
   const supabase = createClient();
+  const { fotos, addPhotos, removePhoto, reset: resetFotos } = usePhotoGallery();
   
   const [loading, setLoading] = useState(false);
   const [selectedPecas, setSelectedPecas] = useState<string[]>([]);
   const [numeroChamado, setNumeroChamado] = useState("");
   const [localAtendimento, setLocalAtendimento] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [fotos, setFotos] = useState<FotoItem[]>([]);
 
   const handleAddPeca = (id: string) => {
     if (!selectedPecas.includes(id)) {
@@ -46,47 +38,6 @@ export function AtendimentoClient({ pecas }: { pecas: Peca[] }) {
     setSelectedPecas(selectedPecas.filter(p => p !== id));
   };
 
-  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newFotos = Array.from(e.target.files).map(file => ({
-        file,
-        preview: URL.createObjectURL(file)
-      }));
-      setFotos(prev => [...prev, ...newFotos]);
-    }
-    // reset the input
-    e.target.value = "";
-  };
-
-  const removeFoto = (index: number) => {
-    setFotos(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-    const filePath = `atendimentos/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('evidencias')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data } = supabase.storage
-      .from('evidencias')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
-  };
-
-  const trimLeadingZeros = (val: string | null | undefined) => {
-    if (!val) return "";
-    return val.replace(/^0+/, "");
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedPecas.length === 0 || !numeroChamado || !localAtendimento || !descricao || fotos.length === 0) {
@@ -96,10 +47,10 @@ export function AtendimentoClient({ pecas }: { pecas: Peca[] }) {
 
     setLoading(true);
     try {
-      // 1. Upload todas as fotos
-      const fotoUrls = await Promise.all(fotos.map(f => uploadImage(f.file)));
+      const fotoUrls = await Promise.all(
+        fotos.map(f => uploadToStorage(supabase, f.file, "atendimentos"))
+      );
 
-      // 2. Chamar server action passando os arrays
       const result = await registrarAtendimentoEBaixa(
         selectedPecas,
         numeroChamado.toUpperCase(),
@@ -112,12 +63,11 @@ export function AtendimentoClient({ pecas }: { pecas: Peca[] }) {
         toast.error(result.error);
       } else {
         toast.success("Atendimento registrado com sucesso!");
-        // Reset form
         setSelectedPecas([]);
         setNumeroChamado("");
         setLocalAtendimento("");
         setDescricao("");
-        setFotos([]);
+        resetFotos();
         router.refresh();
       }
     } catch (err) {
@@ -135,11 +85,10 @@ export function AtendimentoClient({ pecas }: { pecas: Peca[] }) {
     );
   }
 
-  // Peças disponíveis para seleção (exclui as já selecionadas)
   const pecasDisponiveis = pecas.filter(p => !selectedPecas.includes(p.id));
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-2">
+    <div className="max-w-2xl mx-auto px-4 py-4">
       <Card className="border-border/50 bg-card/80 shadow-md overflow-hidden rounded-xl">
         <CardContent className="p-0">
           <form onSubmit={handleSubmit} className="divide-y divide-border/40">
@@ -151,8 +100,7 @@ export function AtendimentoClient({ pecas }: { pecas: Peca[] }) {
                     Peças Utilizadas
                   </Label>
                   
-                  {/* Select para adicionar peças */}
-                  <Select value="" onValueChange={handleAddPeca}>
+                  <Select value="" onValueChange={(val) => val && handleAddPeca(val)}>
                     <SelectTrigger id="peca" className="w-full bg-background border-border/60 focus:ring-primary/20 transition-all shadow-sm">
                       <SelectValue placeholder={pecasDisponiveis.length > 0 ? "Selecione para adicionar..." : "Nenhuma peça disponível"} />
                     </SelectTrigger>
@@ -257,7 +205,7 @@ export function AtendimentoClient({ pecas }: { pecas: Peca[] }) {
                         variant="destructive"
                         size="icon"
                         className="h-8 w-8 rounded-full shadow-md"
-                        onClick={() => removeFoto(idx)}
+                        onClick={() => removePhoto(idx)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -277,7 +225,7 @@ export function AtendimentoClient({ pecas }: { pecas: Peca[] }) {
                     capture="environment" 
                     multiple
                     className="hidden" 
-                    onChange={handleFotoChange}
+                    onChange={addPhotos}
                   />
                 </label>
               </div>

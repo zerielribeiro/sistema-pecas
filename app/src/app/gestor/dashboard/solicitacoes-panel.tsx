@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { aprovarSolicitacao, cancelarSolicitacao } from "@/app/actions/solicitacoes";
+import { trimLeadingZeros } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Package, User, Loader2, ShoppingCart } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,25 +23,19 @@ interface SolicitacoesPanelProps {
   solicitacoes: Solicitacao[];
 }
 
-const trimZeros = (val: string | null | undefined) => {
-  if (!val) return "";
-  return val.replace(/^0+/, "");
-};
-
 export function SolicitacoesPanel({ solicitacoes: initial }: SolicitacoesPanelProps) {
   const [solicitacoes, setSolicitacoes] = useState(initial);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleAprovar = (id: string) => {
     setLoadingId(id);
-    setErrorMsg(null);
     startTransition(async () => {
       const result = await aprovarSolicitacao(id);
       if (result.error) {
-        setErrorMsg(result.error);
+        toast.error(result.error);
       } else {
+        toast.success("Solicitação aprovada com sucesso!");
         setSolicitacoes((prev) => prev.filter((s) => s.id !== id));
       }
       setLoadingId(null);
@@ -49,12 +44,12 @@ export function SolicitacoesPanel({ solicitacoes: initial }: SolicitacoesPanelPr
 
   const handleCancelar = (id: string) => {
     setLoadingId(id);
-    setErrorMsg(null);
     startTransition(async () => {
       const result = await cancelarSolicitacao(id);
       if (result.error) {
-        setErrorMsg(result.error);
+        toast.error(result.error);
       } else {
+        toast.success("Solicitação cancelada.");
         setSolicitacoes((prev) => prev.filter((s) => s.id !== id));
       }
       setLoadingId(null);
@@ -74,11 +69,6 @@ export function SolicitacoesPanel({ solicitacoes: initial }: SolicitacoesPanelPr
 
   return (
     <div className="space-y-2">
-      {errorMsg && (
-        <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
-          {errorMsg}
-        </div>
-      )}
       {solicitacoes.map((sol) => {
         const isLoading = loadingId === sol.id && isPending;
         return (
@@ -97,7 +87,7 @@ export function SolicitacoesPanel({ solicitacoes: initial }: SolicitacoesPanelPr
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-0.5">
                     <p className="text-xs font-bold truncate">
-                      {trimZeros(sol.pecas?.cod_produto)} — {sol.pecas?.descricao || "—"}
+                      {trimLeadingZeros(sol.pecas?.cod_produto)} — {sol.pecas?.descricao || "—"}
                     </p>
                     <span className="text-[9px] text-muted-foreground whitespace-nowrap">
                       {formatDistanceToNow(new Date(sol.criado_em), {
@@ -112,12 +102,12 @@ export function SolicitacoesPanel({ solicitacoes: initial }: SolicitacoesPanelPr
                       {sol.tecnico?.nome}
                     </span>
                     <span className="text-[9px] font-mono text-muted-foreground/60">
-                      · PCA: {trimZeros(sol.pecas?.pca)}
+                      · PCA: {trimLeadingZeros(sol.pecas?.pca)}
                     </span>
                   </div>
                   {sol.observacao && (
                     <p className="text-[10px] italic text-muted-foreground/70">
-                      "{sol.observacao}"
+                      &quot;{sol.observacao}&quot;
                     </p>
                   )}
                 </div>

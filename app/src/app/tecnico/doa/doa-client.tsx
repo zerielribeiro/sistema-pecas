@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Camera, AlertOctagon, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { trimLeadingZeros } from "@/lib/utils";
+import { uploadToStorage } from "@/lib/upload";
+import { usePhotoGallery } from "@/hooks/use-photo-gallery";
+import type { PecaBase } from "@/types/peca";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,26 +17,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { registrarDoaPeca } from "@/app/actions/doa";
 
-interface Peca {
-  id: string;
-  cod_produto: string;
-  descricao: string | null;
-  pca: string;
-}
-
-interface FotoItem {
-  file: File;
-  preview: string;
-}
-
-export function DoaClient({ pecas }: { pecas: Peca[] }) {
+export function DoaClient({ pecas }: { pecas: PecaBase[] }) {
   const router = useRouter();
   const supabase = createClient();
+  const { fotos, addPhotos, removePhoto, reset: resetFotos } = usePhotoGallery();
   
   const [loading, setLoading] = useState(false);
   const [selectedPecas, setSelectedPecas] = useState<string[]>([]);
   const [motivo, setMotivo] = useState("");
-  const [fotos, setFotos] = useState<FotoItem[]>([]);
 
   const handleAddPeca = (id: string) => {
     if (!selectedPecas.includes(id)) {
@@ -44,47 +36,6 @@ export function DoaClient({ pecas }: { pecas: Peca[] }) {
     setSelectedPecas(selectedPecas.filter(p => p !== id));
   };
 
-  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newFotos = Array.from(e.target.files).map(file => ({
-        file,
-        preview: URL.createObjectURL(file)
-      }));
-      setFotos(prev => [...prev, ...newFotos]);
-    }
-    // reset the input
-    e.target.value = "";
-  };
-
-  const removeFoto = (index: number) => {
-    setFotos(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `doa_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-    const filePath = `evidencias/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('evidencias')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data } = supabase.storage
-      .from('evidencias')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
-  };
-
-  const trimLeadingZeros = (val: string | null | undefined) => {
-    if (!val) return "";
-    return val.replace(/^0+/, "");
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedPecas.length === 0 || !motivo || fotos.length === 0) {
@@ -94,10 +45,10 @@ export function DoaClient({ pecas }: { pecas: Peca[] }) {
 
     setLoading(true);
     try {
-      // 1. Upload todas as fotos
-      const fotoUrls = await Promise.all(fotos.map(f => uploadImage(f.file)));
+      const fotoUrls = await Promise.all(
+        fotos.map(f => uploadToStorage(supabase, f.file, "evidencias"))
+      );
 
-      // 2. Chamar server action
       const result = await registrarDoaPeca(
         selectedPecas,
         motivo.toUpperCase(),
@@ -108,10 +59,9 @@ export function DoaClient({ pecas }: { pecas: Peca[] }) {
         toast.error(result.error);
       } else {
         toast.success("Peças registradas como DOA com sucesso!");
-        // Reset form
         setSelectedPecas([]);
         setMotivo("");
-        setFotos([]);
+        resetFotos();
         router.refresh();
       }
     } catch (err) {
@@ -129,11 +79,10 @@ export function DoaClient({ pecas }: { pecas: Peca[] }) {
     );
   }
 
-  // Peças disponíveis para seleção (exclui as já selecionadas)
   const pecasDisponiveis = pecas.filter(p => !selectedPecas.includes(p.id));
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-4">
       <Card className="border-red-500/20 bg-card/80 shadow-xl shadow-red-500/5 overflow-hidden rounded-xl">
         <CardContent className="p-0">
           <form onSubmit={handleSubmit} className="divide-y divide-border/40">
@@ -142,8 +91,7 @@ export function DoaClient({ pecas }: { pecas: Peca[] }) {
               <div className="space-y-3">
                 <Label htmlFor="peca" className="text-xs font-semibold text-red-400 ml-1">Peças com Defeito (DOA)</Label>
                 
-                {/* Select para adicionar peças */}
-                <Select value="" onValueChange={handleAddPeca}>
+                <Select value="" onValueChange={(val) => val && handleAddPeca(val)}>
                   <SelectTrigger id="peca" className="w-full bg-background border-red-500/30 focus:ring-red-500/20 shadow-sm transition-all">
                     <SelectValue placeholder={pecasDisponiveis.length > 0 ? "Selecione a peça defeituosa..." : "Nenhuma peça disponível"} />
                   </SelectTrigger>
@@ -226,7 +174,7 @@ export function DoaClient({ pecas }: { pecas: Peca[] }) {
                         variant="destructive"
                         size="icon"
                         className="h-8 w-8 rounded-full shadow-md"
-                        onClick={() => removeFoto(idx)}
+                        onClick={() => removePhoto(idx)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -246,7 +194,7 @@ export function DoaClient({ pecas }: { pecas: Peca[] }) {
                     capture="environment" 
                     multiple
                     className="hidden" 
-                    onChange={handleFotoChange}
+                    onChange={addPhotos}
                   />
                 </label>
               </div>

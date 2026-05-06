@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { requireGestor, requireTecnico } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 
 // Técnico solicita uma peça do estoque geral
@@ -8,129 +9,96 @@ export async function solicitarPeca(
   pecaId: string,
   observacao?: string
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const { supabase, user } = await requireTecnico();
 
-  if (!user) return { error: "Usuário não autenticado." };
+    // Verifica se já existe solicitação pendente para esta peça por este técnico
+    const { data: existente } = await supabase
+      .from("solicitacoes_pecas")
+      .select("id")
+      .eq("peca_id", pecaId)
+      .eq("tecnico_id", user.id)
+      .eq("status", "PENDENTE")
+      .single();
 
-  const { data: perfil } = await supabase
-    .from("perfis")
-    .select("papel")
-    .eq("id", user.id)
-    .single();
+    if (existente) {
+      return { error: "Você já possui uma solicitação pendente para esta peça." };
+    }
 
-  if (perfil?.papel !== "TECNICO") {
-    return { error: "Apenas técnicos podem solicitar peças." };
+    // Verifica se a peça está disponível
+    const { data: peca } = await supabase
+      .from("pecas")
+      .select("status")
+      .eq("id", pecaId)
+      .single();
+
+    if (!peca || peca.status !== "EM_ESTOQUE_EMPRESA") {
+      return { error: "Esta peça não está disponível para solicitação." };
+    }
+
+    const { error } = await supabase.from("solicitacoes_pecas").insert({
+      peca_id: pecaId,
+      tecnico_id: user.id,
+      observacao: observacao || null,
+      status: "PENDENTE",
+    });
+
+    if (error) return { error: error.message };
+
+    revalidatePath("/tecnico/solicitar");
+    revalidatePath("/gestor/dashboard");
+    return {};
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Erro desconhecido" };
   }
-
-  // Verifica se já existe solicitação pendente para esta peça por este técnico
-  const { data: existente } = await supabase
-    .from("solicitacoes_pecas")
-    .select("id")
-    .eq("peca_id", pecaId)
-    .eq("tecnico_id", user.id)
-    .eq("status", "PENDENTE")
-    .single();
-
-  if (existente) {
-    return { error: "Você já possui uma solicitação pendente para esta peça." };
-  }
-
-  // Verifica se a peça está disponível
-  const { data: peca } = await supabase
-    .from("pecas")
-    .select("status")
-    .eq("id", pecaId)
-    .single();
-
-  if (!peca || peca.status !== "EM_ESTOQUE_EMPRESA") {
-    return { error: "Esta peça não está disponível para solicitação." };
-  }
-
-  const { error } = await supabase.from("solicitacoes_pecas").insert({
-    peca_id: pecaId,
-    tecnico_id: user.id,
-    observacao: observacao || null,
-    status: "PENDENTE",
-  });
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/tecnico/solicitar");
-  revalidatePath("/gestor/dashboard");
-  return {};
 }
 
 // Gestor aprova a solicitação (RPC atômica)
 export async function aprovarSolicitacao(
   solicitacaoId: string
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const { supabase, user } = await requireGestor();
 
-  if (!user) return { error: "Usuário não autenticado." };
+    const { error } = await supabase.rpc("aprovar_solicitacao", {
+      p_solicitacao_id: solicitacaoId,
+      p_gestor_id: user.id,
+    });
 
-  const { data: perfil } = await supabase
-    .from("perfis")
-    .select("papel")
-    .eq("id", user.id)
-    .single();
+    if (error) return { error: error.message };
 
-  if (perfil?.papel !== "GESTOR") {
-    return { error: "Apenas gestores podem aprovar solicitações." };
+    revalidatePath("/gestor/dashboard");
+    revalidatePath("/gestor/pecas");
+    revalidatePath("/gestor/distribuir");
+    revalidatePath("/tecnico/estoque");
+    revalidatePath("/tecnico/solicitar");
+    return {};
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Erro desconhecido" };
   }
-
-  const { error } = await supabase.rpc("aprovar_solicitacao", {
-    p_solicitacao_id: solicitacaoId,
-    p_gestor_id: user.id,
-  });
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/gestor/dashboard");
-  revalidatePath("/gestor/pecas");
-  revalidatePath("/gestor/distribuir");
-  revalidatePath("/tecnico/estoque");
-  revalidatePath("/tecnico/solicitar");
-  return {};
 }
 
 // Gestor cancela a solicitação
 export async function cancelarSolicitacao(
   solicitacaoId: string
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const { supabase, user } = await requireGestor();
 
-  if (!user) return { error: "Usuário não autenticado." };
+    const { error } = await supabase
+      .from("solicitacoes_pecas")
+      .update({ status: "CANCELADA", gestor_id: user.id, atualizado_em: new Date().toISOString() })
+      .eq("id", solicitacaoId)
+      .eq("status", "PENDENTE");
 
-  const { data: perfil } = await supabase
-    .from("perfis")
-    .select("papel")
-    .eq("id", user.id)
-    .single();
+    if (error) return { error: error.message };
 
-  if (perfil?.papel !== "GESTOR") {
-    return { error: "Apenas gestores podem cancelar solicitações." };
+    revalidatePath("/gestor/dashboard");
+    revalidatePath("/tecnico/solicitar");
+    return {};
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Erro desconhecido" };
   }
-
-  const { error } = await supabase
-    .from("solicitacoes_pecas")
-    .update({ status: "CANCELADA", gestor_id: user.id, atualizado_em: new Date().toISOString() })
-    .eq("id", solicitacaoId)
-    .eq("status", "PENDENTE");
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/gestor/dashboard");
-  revalidatePath("/tecnico/solicitar");
-  return {};
 }
 
 // Busca peças disponíveis no estoque geral (para o técnico)

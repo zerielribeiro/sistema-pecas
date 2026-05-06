@@ -32,6 +32,7 @@ export function ProfileSettings({ userName, userEmail = "", children, onProfileU
   useEffect(() => {
     if (state?.success) {
       toast.success(state.message);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpen(false);
       if (onProfileUpdate && state.user) {
         onProfileUpdate(state.user.nome, state.user.email);
@@ -63,8 +64,8 @@ export function ProfileSettings({ userName, userEmail = "", children, onProfileU
                 id="nome"
                 name="nome"
                 defaultValue={userName}
-                className="pl-9"
-                required
+                className="pl-9 bg-muted/50 cursor-not-allowed"
+                readOnly
               />
             </div>
           </div>
@@ -77,12 +78,12 @@ export function ProfileSettings({ userName, userEmail = "", children, onProfileU
                 name="email"
                 type="email"
                 defaultValue={userEmail}
-                className="pl-9"
-                required
+                className="pl-9 bg-muted/50 cursor-not-allowed"
+                readOnly
               />
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Aviso: Alterar o email pode requerer confirmação caso configurado.
+              Apenas a senha pode ser alterada diretamente pelo perfil.
             </p>
           </div>
 
