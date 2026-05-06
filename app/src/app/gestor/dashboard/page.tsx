@@ -65,6 +65,12 @@ export default async function DashboardPage() {
     .eq("status", "PENDENTE")
     .order("criado_em", { ascending: true });
 
+  const processedSolicitacoes = (solicitacoes as any[])?.map(s => ({
+    ...s,
+    pecas: Array.isArray(s.pecas) ? s.pecas[0] : s.pecas,
+    tecnico: Array.isArray(s.tecnico) ? s.tecnico[0] : s.tecnico,
+  })) as Solicitacao[];
+
   // Recent Activity
   const { data: recentActivity } = await supabase
     .from("movimentacoes")
@@ -78,6 +84,12 @@ export default async function DashboardPage() {
     `)
     .order("criado_em", { ascending: false })
     .limit(5);
+
+  const activities = (recentActivity as any[])?.map((activity) => ({
+    ...activity,
+    pecas: Array.isArray(activity.pecas) ? activity.pecas[0] : activity.pecas,
+    perfis: Array.isArray(activity.perfis) ? activity.perfis[0] : activity.perfis
+  })) as ActivityItem[];
 
   const emEstoque = pecas?.filter((p) => p.status === "EM_ESTOQUE_EMPRESA").length || 0;
   const distribuidas = pecas?.filter((p) => p.status === "DISTRIBUIDA").length || 0;
@@ -144,7 +156,7 @@ export default async function DashboardPage() {
             )}
           </h3>
         </div>
-        <SolicitacoesPanel solicitacoes={(solicitacoes as unknown as Solicitacao[]) ?? []} />
+        <SolicitacoesPanel solicitacoes={processedSolicitacoes ?? []} />
       </div>
 
       {/* Recent Activity Feed */}
@@ -160,8 +172,8 @@ export default async function DashboardPage() {
         </div>
 
         <div className="space-y-2">
-          {recentActivity && recentActivity.length > 0 ? (
-            recentActivity.map((activity: ActivityItem) => (
+          {activities && activities.length > 0 ? (
+            activities.map((activity: ActivityItem) => (
               <div
                 key={activity.id}
                 className="flex items-center gap-3 p-2.5 rounded-xl border border-border/40 bg-card/30 backdrop-blur-sm hover:bg-card/50 transition-colors"
