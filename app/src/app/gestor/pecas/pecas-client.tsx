@@ -73,7 +73,11 @@ export function PecasClient({
       peca.pca.toLowerCase().includes(searchTerm.toLowerCase()) ||
       nomeTecnico.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === "TODOS" || peca.status === statusFilter;
+    const matchesStatus = statusFilter === "TODOS" || 
+      (statusFilter === "DOA" 
+        ? ["DOA", "AGUARDANDO_ENVIO", "ENVIADA_LAB"].includes(peca.status)
+        : peca.status === statusFilter);
+    
     const matchesTecnico = tecnicoFilter === "TODOS" || nomeTecnico === tecnicoFilter;
     
     return matchesSearch && matchesStatus && matchesTecnico;
@@ -680,9 +684,13 @@ export function PecasClient({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="TODOS">Todos os Status</SelectItem>
-                {Object.entries(statusLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
+                {Object.entries(statusLabels)
+                  .filter(([value]) => 
+                    ["EM_ESTOQUE_EMPRESA", "DISTRIBUIDA", "UTILIZADA", "DOA", "DEVOLVIDA_NOVA"].includes(value)
+                  )
+                  .map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
               </SelectContent>
             </Select>
 

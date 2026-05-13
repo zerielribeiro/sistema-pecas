@@ -2,25 +2,27 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, PackageSearch, Send } from "lucide-react";
+import { 
+  Loader2, 
+  PackageSearch, 
+  Send, 
+  CheckCircle2, 
+  Clock, 
+  Filter, 
+  User 
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   marcarEnvioLab,
-  confirmarEnvioLab
+  confirmarEnvioLab,
+  finalizarPecas
 } from "@/app/actions/laboratorio";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { Filter, User } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
@@ -69,6 +71,8 @@ export function LaboratorioClient({ pecas }: { pecas: Peca[] }) {
   });
 
   const pecasEnviar = pecas.filter((p) => p.status === "AGUARDANDO_ENVIO");
+
+  const pecasNoLab = pecas.filter((p) => p.status === "ENVIADA_LAB");
 
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -311,6 +315,7 @@ export function LaboratorioClient({ pecas }: { pecas: Peca[] }) {
                         peca.status === 'DOA' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
                         peca.status === 'UTILIZADA' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
                         peca.status === 'DEVOLVIDA_NOVA' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                        peca.status === 'ENVIADA_LAB' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
                         'bg-muted text-muted-foreground'
                       }`}
                     >
@@ -366,9 +371,10 @@ export function LaboratorioClient({ pecas }: { pecas: Peca[] }) {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="receber" className="w-full" onValueChange={() => setSelectedIds(new Set())}>
-        <TabsList className="grid w-full grid-cols-2 h-12">
-          <TabsTrigger value="receber" className="text-xs sm:text-sm">Receber / DOA</TabsTrigger>
-          <TabsTrigger value="enviar" className="text-xs sm:text-sm">Enviar p/ Lab</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 h-12">
+          <TabsTrigger value="receber" className="text-[10px] sm:text-sm px-1">Receber / DOA</TabsTrigger>
+          <TabsTrigger value="enviar" className="text-[10px] sm:text-sm px-1">Aguard. Envio</TabsTrigger>
+          <TabsTrigger value="nolab" className="text-[10px] sm:text-sm px-1">No Lab</TabsTrigger>
         </TabsList>
 
         <TabsContent value="receber">
@@ -410,9 +416,24 @@ export function LaboratorioClient({ pecas }: { pecas: Peca[] }) {
           {renderList(
             pecasEnviar,
             "Nenhuma peça aguardando envio.",
-            "Confirmar Envio",
+            "Confirmar Envio p/ Lab",
             <Send className="w-4 h-4" />,
             () => handleAction((ids) => confirmarEnvioLab(ids))
+          )}
+        </TabsContent>
+
+        <TabsContent value="nolab">
+          <div className="mb-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Em Laboratório</h3>
+            <p className="text-xs text-muted-foreground mt-1">Peças que já foram enviadas. Finalize o processo após o laudo técnico.</p>
+          </div>
+          {renderList(
+            pecasNoLab,
+            "Nenhuma peça atualmente no laboratório.",
+            "Finalizar Processo (RMA)",
+            <CheckCircle2 className="w-4 h-4" />,
+            () => handleAction((ids, obs) => finalizarPecas(ids, obs || ""), true),
+            true
           )}
         </TabsContent>
       </Tabs>

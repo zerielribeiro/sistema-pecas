@@ -6,6 +6,7 @@ export const STATUS_COLORS: Record<string, string> = {
   AGUARDANDO_ENVIO: "bg-amber-500/15 text-amber-400 border-amber-500/30",
   ENVIADA_LAB: "bg-purple-500/15 text-purple-400 border-purple-500/30",
   FINALIZADA: "bg-stone-500/15 text-stone-400 border-stone-500/30",
+  DEVOLVIDA_NOVA: "bg-teal-500/15 text-teal-400 border-teal-500/30",
 };
 
 export const STATUS_LABELS: Record<string, string> = {
@@ -13,7 +14,8 @@ export const STATUS_LABELS: Record<string, string> = {
   DISTRIBUIDA: "Com Técnico",
   UTILIZADA: "Utilizada",
   DOA: "DOA",
-  AGUARDANDO_ENVIO: "Aguard. Envio",
-  ENVIADA_LAB: "No Lab",
+  AGUARDANDO_ENVIO: "DOA - Aguard. Envio",
+  ENVIADA_LAB: "DOA - No Lab",
   FINALIZADA: "Finalizada",
+  DEVOLVIDA_NOVA: "Devolvida (Nova)",
 };
